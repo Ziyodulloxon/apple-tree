@@ -18,6 +18,13 @@ use yii\db\StaleObjectException;
  */
 class Apple extends \yii\db\ActiveRecord
 {
+    const STATUS = [
+        "ON_TREE" => "on_tree",
+        "FALLEN" => "fallen",
+        "BITTEN_OFF" => "bitten_off",
+        "ROTTEN" => "rotten",
+    ];
+
     private AppleStateInterface $state;
 
     /**
@@ -34,11 +41,15 @@ class Apple extends \yii\db\ActiveRecord
     public function rules(): array
     {
         return [
-            [['color', 'created_date'], 'required'],
+            [['color', 'created_date'], 'required', 'match' => '/^(\w|\d){6}$/'],
             [['created_date', 'fallen_date'], 'integer'],
-            [['remained'], 'number'],
+            [['remained'], 'number', function () {
+                return $this->remained > 0 && $this->remained <= 1;
+            }],
+            [['remainedPercent'], 'integer', 'min' => 1, 'max' => 100],
             [['color'], 'string', 'max' => 6],
             [['status'], 'string', 'max' => 10],
+            [['status'], 'in', 'range' => self::STATUS],
         ];
     }
 
