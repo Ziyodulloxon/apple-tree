@@ -71,21 +71,24 @@ $this->params['breadcrumbs'][] = $this->title;
                         $icon = "<span class='glyphicon glyphicon-download-alt'></span>";
                         return Html::a($icon, ["fall-form", "id" => $apple->id], ['data' => [
                             'toggle' => 'modal',
-                            'target' => '#fall-modal'
+                            'target' => '#fall-modal',
+                            'title' => 'Fall'
                         ]]);
                     },
                     'bite-off' => function (string $url, Apple $apple) {
                         $icon = "<span class='glyphicon glyphicon-apple'></span>";
                         return Html::a($icon, ["bite-off-form", 'id' => $apple->id], ['data' => [
                             'toggle' => 'modal',
-                            'target' => '#bite-off-modal'
+                            'target' => '#bite-off-modal',
+                            'title' => 'Bite off'
                         ]]);
                     },
                     'eat' => function (string $url, Apple $apple) {
                         $icon = "<span class='glyphicon glyphicon-trash'></span>";
                         return Html::a($icon, ["eat-form", 'id' => $apple->id], ['data' => [
                             'toggle' => 'modal',
-                            'target' => '#bite-off-modal'
+                            'target' => '#eat-modal',
+                            'title' => 'Eat'
                         ]]);
                     }
                 ],

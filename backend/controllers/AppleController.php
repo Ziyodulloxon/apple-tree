@@ -28,18 +28,14 @@ class AppleController extends Controller
                     [
                         'allow' => true,
                         'verbs' => ['GET'],
-                        'actions' => ['index'],
-                        'matchCallback' => function () {
-                            return !\Yii::$app->user->isGuest;
-                        }
+                        'actions' => ['index', 'fall-form', 'eat-form', 'bite-off-form'],
+                        'roles' => ['@']
                     ],
                     [
                         'allow' => true,
-                        'actions' => ['create', 'delete'],
+                        'actions' => ['create', 'eat', 'fall', 'bite-off'],
                         'verbs' => ['POST'],
-                        'matchCallback' => function () {
-                            return !\Yii::$app->user->isGuest;
-                        }
+                        'roles' => ['@']
                     ]
                 ],
             ],
@@ -108,7 +104,7 @@ class AppleController extends Controller
 
     public function actionFallForm(int $id): string
     {
-        return $this->renderAjax('_fall', [
+        return $this->renderPartial('_fall', [
             'model' => $this->findModel($id)
         ]);
     }
@@ -137,7 +133,7 @@ class AppleController extends Controller
      */
     public function actionBiteOffForm(int $id): string
     {
-        return $this->renderAjax('_bite-off', [
+        return $this->renderPartial('_bite-off', [
             'model' => $this->findModel($id)
         ]);
     }
@@ -163,7 +159,7 @@ class AppleController extends Controller
 
     public function actionEatForm(int $id): string
     {
-        return $this->renderAjax('_eat', [
+        return $this->renderPartial('_eat', [
             'model' => $this->findModel($id)
         ]);
     }

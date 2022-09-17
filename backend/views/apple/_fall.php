@@ -11,7 +11,7 @@ use yii\widgets\ActiveForm;
 
 <div class="apple-form">
 
-    <?php $form = ActiveForm::begin(["action" => Url::to(['fall', 'id' => $model->id])]); ?>
+    <?php $form = ActiveForm::begin(["method" => "POST", "action" => Url::to(['fall', 'id' => $model->id])]); ?>
 
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
