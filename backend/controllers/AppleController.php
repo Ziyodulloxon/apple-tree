@@ -2,11 +2,14 @@
 
 namespace backend\controllers;
 
+use common\components\AppleFactory;
 use common\models\Apple;
 use common\models\search\AppleSearch;
+use yii\filters\AccessControl;
+use yii\web\BadRequestHttpException;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
-use yii\filters\VerbFilter;
+use yii\web\Response;
 
 /**
  * AppleController implements the CRUD actions for Apple model.
@@ -16,19 +19,43 @@ class AppleController extends Controller
     /**
      * @inheritDoc
      */
-    public function behaviors()
+    public function behaviors(): array
     {
-        return array_merge(
-            parent::behaviors(),
-            [
-                'verbs' => [
-                    'class' => VerbFilter::className(),
-                    'actions' => [
-                        'delete' => ['POST'],
+        return [
+            'access' => [
+                'class' => AccessControl::class,
+                'rules' => [
+                    [
+                        'allow' => true,
+                        'verbs' => ['GET'],
+                        'actions' => ['index'],
+                        'matchCallback' => function () {
+                            return !\Yii::$app->user->isGuest;
+                        }
                     ],
+                    [
+                        'allow' => true,
+                        'actions' => ['create', 'delete'],
+                        'verbs' => ['POST'],
+                        'matchCallback' => function () {
+                            return !\Yii::$app->user->isGuest;
+                        }
+                    ]
                 ],
-            ]
-        );
+            ],
+        ];
+    }
+
+    /**
+     * @throws BadRequestHttpException
+     */
+    public function beforeAction($action): bool
+    {
+        if ($this->action->id === "create") {
+            $this->enableCsrfValidation = false;
+        }
+
+        return parent::beforeAction($action);
     }
 
     /**
@@ -53,7 +80,7 @@ class AppleController extends Controller
      * @return string
      * @throws NotFoundHttpException if the model cannot be found
      */
-    public function actionView($id)
+    public function actionView(int $id): string
     {
         return $this->render('view', [
             'model' => $this->findModel($id),
@@ -63,42 +90,81 @@ class AppleController extends Controller
     /**
      * Creates a new Apple model.
      * If creation is successful, the browser will be redirected to the 'view' page.
-     * @return string|\yii\web\Response
      */
-    public function actionCreate()
+    public function actionCreate(): Response
     {
-        $model = new Apple();
+        $transaction = \Yii::$app->db->beginTransaction();
+        try {
+            (new AppleFactory())->makeSeveralApples();
+            $transaction->commit();
+            \Yii::$app->session->setFlash("success", "Apples successfully created");
+        } catch (\Exception $exception) {
+            $transaction->rollBack();
+            \Yii::$app->session->setFlash("error", $exception->getMessage());
+        } finally {
+            return $this->redirect(["index"]);
+        }
+    }
 
-        if ($this->request->isPost) {
-            if ($model->load($this->request->post()) && $model->save()) {
-                return $this->redirect(['view', 'id' => $model->id]);
+    public function actionFallForm(int $id): string
+    {
+        return $this->renderAjax('_fall', [
+            'model' => $this->findModel($id)
+        ]);
+    }
+
+    public function actionFall(int $id): Response
+    {
+        try {
+            $apple = $this->findModel($id);
+            $apple->fall();
+            if (!$apple->save()) {
+                $errors = $apple->getFirstErrors();
+                throw new \Exception(json_encode($errors));
             }
-        } else {
-            $model->loadDefaultValues();
+            \Yii::$app->session->setFlash("success", "Apple has successfully fallen");
+        } catch (\Exception $exception) {
+            \Yii::$app->session->setFlash("error", $exception->getMessage());
         }
 
-        return $this->render('create', [
-            'model' => $model,
+        return $this->redirect(['index']);
+    }
+
+    /**
+     * @param int $id ID
+     * @return string
+     * @throws NotFoundHttpException if the model cannot be found
+     */
+    public function actionBiteOffForm(int $id): string
+    {
+        return $this->renderAjax('_bite-off', [
+            'model' => $this->findModel($id)
         ]);
     }
 
     /**
-     * Updates an existing Apple model.
-     * If update is successful, the browser will be redirected to the 'view' page.
      * @param int $id ID
-     * @return string|\yii\web\Response
+     * @return string
      * @throws NotFoundHttpException if the model cannot be found
      */
-    public function actionUpdate($id)
+    public function actionBiteOff(int $id): Response
     {
         $model = $this->findModel($id);
-
-        if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->id]);
+        try {
+            $model->load(\Yii::$app->request->post());
+            $model->biteOff();
+            \Yii::$app->session->setFlash("success", "An apple successfully bitten off");
+        } catch (\Exception $exception) {
+            \Yii::$app->session->setFlash("error", $exception->getMessage());
         }
 
-        return $this->render('update', [
-            'model' => $model,
+        return $this->redirect(['index']);
+    }
+
+    public function actionEatForm(int $id): string
+    {
+        return $this->renderAjax('_eat', [
+            'model' => $this->findModel($id)
         ]);
     }
 
@@ -106,12 +172,14 @@ class AppleController extends Controller
      * Deletes an existing Apple model.
      * If deletion is successful, the browser will be redirected to the 'index' page.
      * @param int $id ID
-     * @return \yii\web\Response
+     * @return Response
      * @throws NotFoundHttpException if the model cannot be found
      */
-    public function actionDelete($id)
+    public function actionEat(int $id): Response
     {
-        $this->findModel($id)->delete();
+        $apple = $this->findModel($id);
+
+        $apple->eat();
 
         return $this->redirect(['index']);
     }

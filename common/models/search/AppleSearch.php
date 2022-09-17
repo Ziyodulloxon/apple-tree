@@ -9,17 +9,29 @@ use common\models\Apple;
 /**
  * AppleSearch represents the model behind the search form of `common\models\Apple`.
  */
-class AppleSearch extends Apple
+class AppleSearch extends Model
 {
+    public $id;
+
+    public $status;
+
+    public $remained;
+
+    public $created_date;
+
+    public $fallen_date;
+
+    public $color;
+
     /**
      * {@inheritdoc}
      */
     public function rules(): array
     {
         return [
-            [['id', 'created_date', 'fallen_date'], 'integer'],
-            [['color', 'status'], 'safe'],
-            [['remained'], 'number'],
+            [['id'], 'integer'],
+            [['status'], 'safe'],
+            [['remained'], 'number', 'min' => 1, 'max' => 100],
         ];
     }
 
@@ -30,11 +42,9 @@ class AppleSearch extends Apple
      *
      * @return ActiveDataProvider
      */
-    public function search($params): ActiveDataProvider
+    public function search(array $params): ActiveDataProvider
     {
         $query = Apple::find();
-
-        // add conditions that should always apply here
 
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
@@ -48,16 +58,21 @@ class AppleSearch extends Apple
             return $dataProvider;
         }
 
+        if ($this->status === Apple::STATUS["ROTTEN"]) {
+            $time = time() - Apple::EXPIRATION_TIME;
+            $query->andFilterWhere(["<", "fallen_date", $time]);
+        } elseif ($this->status === Apple::STATUS["FALLEN"]) {
+            $time = time() - Apple::EXPIRATION_TIME;
+            $query->andFilterWhere([">=", "fallen_date", $time]);
+        } elseif ($this->status) {
+            $query->andFilterWhere(['status' => $this->status]);
+        }
+
         // grid filtering conditions
         $query->andFilterWhere([
             'id' => $this->id,
-            'created_date' => $this->created_date,
-            'fallen_date' => $this->fallen_date,
-            'remained' => $this->remained,
+            'remained' => $this->remained ? (int)$this->remained / 100 : '',
         ]);
-
-        $query->andFilterWhere(['like', 'color', $this->color])
-            ->andFilterWhere(['like', 'status', $this->status]);
 
         return $dataProvider;
     }
